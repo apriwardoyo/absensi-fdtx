@@ -1,86 +1,67 @@
-(() => {
-  const form = document.getElementById('form');
-  const nameInput = document.getElementById('name');
-  const list = document.getElementById('list');
-  const dateInput = document.getElementById('date');
-  const searchBtn = document.getElementById('search');
-  const clearBtn = document.getElementById('clear');
-  const submitBtn = document.getElementById('submit-btn');
+const listEl = document.getElementById('list');
+const form = document.getElementById('form');
+const nameInput = document.getElementById('name');
+const submitBtn = document.getElementById('submit-btn');
+const dateInput = document.getElementById('date');
+const searchBtn = document.getElementById('search');
+const clearBtn = document.getElementById('clear');
 
-  function renderList(items) {
-    if (!Array.isArray(items) || items.length === 0) {
-      list.innerHTML = '<li class="empty">Tidak ada data untuk tanggal ini</li>';
-      return;
-    }
-    list.innerHTML = items.map(item => {
-      const time = item.time ? new Date(item.time).toLocaleString() : '';
-      // escape name
-      const name = String(item.name || '').replace(/[&<>"'`]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'}[c]));
-      return `<li><strong>${name}</strong><span class="time">${time}</span></li>`;
-    }).join('');
+// Render attendance list
+async function loadList(filterDate) {
+  listEl.innerHTML = '<li class="empty">Memuat...</li>';
+  let url = '/api/attendance';
+  if (filterDate) url += '?date=' + filterDate;
+
+  const res = await fetch(url);
+  const data = await res.json();
+
+  if (data.length === 0) {
+    listEl.innerHTML = '<li class="empty">Belum ada data</li>';
+    return;
   }
 
-  async function loadAttendances(queryDate = null) {
-    try {
-      let url = '/api/attendances';
-      if (queryDate) url += `?date=${encodeURIComponent(queryDate)}`;
-      list.innerHTML = '<li class="empty">Memuat...</li>';
-      const res = await fetch(url);
-      if (!res.ok) {
-        renderList([]);
-        console.error('API error', res.status, await res.text());
-        return;
-      }
-      const data = await res.json();
-      renderList(data);
-    } catch (err) {
-      console.error('Failed to load attendances:', err);
-      list.innerHTML = '<li class="empty">Gagal memuat data</li>';
-    }
+  listEl.innerHTML = '';
+  data.forEach(item => {
+    const li = document.createElement('li');
+    li.textContent = item.name;
+    const span = document.createElement('span');
+    span.className = 'time';
+    span.textContent = new Date(item.date).toLocaleString();
+    li.appendChild(span);
+    listEl.appendChild(li);
+  });
+}
+
+// Submit new attendance
+submitBtn.addEventListener('click', async () => {
+  const name = nameInput.value.trim();
+  if (!name) return alert('Isi nama!');
+
+  const res = await fetch('/api/attendance', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name })
+  });
+
+  if (res.ok) {
+    nameInput.value = '';
+    loadList();
+  } else {
+    alert('Gagal input data');
   }
+});
 
-  submitBtn.addEventListener('click', async () => {
-    const name = nameInput.value.trim();
-    if (!name) {
-      alert('Masukkan nama');
-      return;
-    }
-    submitBtn.disabled = true;
-    try {
-      const res = await fetch('/api/attendances', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name })
-      });
-      if (!res.ok) {
-        const txt = await res.text();
-        alert('Gagal absen: ' + txt);
-      } else {
-        nameInput.value = '';
-        await loadAttendances(); // refresh all
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Terjadi kesalahan saat mengirim data');
-    } finally {
-      submitBtn.disabled = false;
-    }
-  });
+// Search by date
+searchBtn.addEventListener('click', () => {
+  const date = dateInput.value;
+  loadList(date);
+});
 
-  searchBtn.addEventListener('click', () => {
-    const d = dateInput.value;
-    if (!d) {
-      alert('Pilih tanggal terlebih dahulu');
-      return;
-    }
-    loadAttendances(d);
-  });
+// Clear filter
+clearBtn.addEventListener('click', () => {
+  dateInput.value = '';
+  loadList();
+});
 
-  clearBtn.addEventListener('click', () => {
-    dateInput.value = '';
-    loadAttendances();
-  });
-
-  // initial load
-  loadAttendances();
-})();
+// Initial load
+loadList();
