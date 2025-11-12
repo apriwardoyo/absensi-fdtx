@@ -1,37 +1,47 @@
-const express = require('express');
 const mongoose = require('mongoose');
-const bodyParser = require('body-parser');
-const cors = require('cors');
-const path = require('path');
-require('dotenv').config();
-
+const express = require('express');
 const app = express();
-app.use(cors());
+const bodyParser = require('body-parser');
+
 app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname, 'public')));
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/attendance_db';
-const PORT = process.env.PORT || 8080;
+// Ambil dari environment
+const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/fdtxdb';
 
-const Attendance = require('./models/Attendance');
+// Koneksi ke MongoDB
+mongoose.connect(uri, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+.then(() => console.log('✅ MongoDB connected successfully'))
+.catch(err => console.error('❌ MongoDB connection error:', err));
 
-mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('MongoDB connection error:', err));
+// Contoh model absensi
+const Absensi = mongoose.model('Absensi', new mongoose.Schema({
+  nama: String,
+  tanggal: Date,
+  status: String
+}));
 
-app.get('/api/attendances', async (req, res) => {
-  const items = await Attendance.find().sort({ createdAt: -1 });
-  res.json(items);
+// Endpoint untuk tambah data absensi
+app.post('/absensi', async (req, res) => {
+  try {
+    const data = new Absensi({
+      nama: req.body.nama,
+      tanggal: new Date(),
+      status: req.body.status
+    });
+    await data.save();
+    res.json({ message: 'Data absensi berhasil disimpan!' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.post('/api/attendances', async (req, res) => {
-  const { name } = req.body;
-  if (!name) return res.status(400).json({ error: 'Name required' });
-  const item = new Attendance({ name, time: new Date() });
-  await item.save();
-  res.json(item);
+// Endpoint untuk lihat data absensi
+app.get('/absensi', async (req, res) => {
+  const data = await Absensi.find();
+  res.json(data);
 });
 
-app.get('/health', (req, res) => res.send('OK'));
-
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(8080, () => console.log('🚀 Server running on port 8080'));
