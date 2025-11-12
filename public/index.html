@@ -1,20 +1,20 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8">
   <title>Absensi Karyawan</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <style>
-    body { font-family: Arial, sans-serif; margin: 30px; }
-    h1 { color: #333; }
+    body { font-family: Arial, sans-serif; margin: 24px; max-width: 700px; }
     form { margin-bottom: 20px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    input, select { padding: 6px; margin-right: 8px; }
+    table { width: 100%; border-collapse: collapse; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-    th { background-color: #eee; }
+    button { padding: 5px 10px; cursor: pointer; }
   </style>
 </head>
 <body>
-  <h1>Absensi Karyawan</h1>
+  <h2>Absensi Karyawan</h2>
 
   <form id="formAbsensi">
     <input type="text" id="nama" placeholder="Nama karyawan" required>
@@ -26,48 +26,52 @@
     <button type="submit">Simpan</button>
   </form>
 
+  <h3>Data Absensi</h3>
   <table id="tabelAbsensi">
     <thead>
-      <tr><th>Nama</th><th>Status</th><th>Tanggal</th></tr>
+      <tr><th>Nama</th><th>Status</th><th>Tanggal</th><th>Aksi</th></tr>
     </thead>
     <tbody></tbody>
   </table>
 
   <script>
-    const API = '/absensi';
+    const API_URL = '/absensi';
 
-    // fungsi menampilkan data
     async function loadData() {
-      const res = await fetch(API);
+      const res = await fetch(API_URL);
       const data = await res.json();
       const tbody = document.querySelector('#tabelAbsensi tbody');
-      tbody.innerHTML = '';
-      data.forEach(d => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${d.nama}</td>
-          <td>${d.status}</td>
-          <td>${new Date(d.tanggal).toLocaleString('id-ID')}</td>
-        `;
-        tbody.appendChild(tr);
-      });
+      tbody.innerHTML = data.map(item => `
+        <tr>
+          <td>${item.nama}</td>
+          <td>${item.status}</td>
+          <td>${new Date(item.tanggal).toLocaleString()}</td>
+          <td>
+            <button onclick="hapusData('${item._id}')">Hapus</button>
+          </td>
+        </tr>
+      `).join('');
     }
 
-    // submit form
-    document.getElementById('formAbsensi').addEventListener('submit', async e => {
+    document.querySelector('#formAbsensi').addEventListener('submit', async e => {
       e.preventDefault();
-      const nama = document.getElementById('nama').value;
-      const status = document.getElementById('status').value;
-      await fetch(API, {
+      const nama = document.querySelector('#nama').value;
+      const status = document.querySelector('#status').value;
+      await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nama, status })
       });
-      document.getElementById('nama').value = '';
-      await loadData();
+      e.target.reset();
+      loadData();
     });
 
-    // load awal
+    async function hapusData(id) {
+      if (!confirm('Yakin ingin menghapus data ini?')) return;
+      await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+      loadData();
+    }
+
     loadData();
   </script>
 </body>
