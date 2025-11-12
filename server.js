@@ -1,15 +1,18 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
+const cors = require('cors');
 
 const app = express();
 app.use(bodyParser.json());
+app.use(cors());
 app.use(express.static('public')); // serve public/index.html
 
-const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/fdtxdb';
+// koneksi ke MongoDB
+const uri = process.env.MONGODB_URI || 'mongodb://fdtx:fdtx123@mongodb:27017/fdtxdb?authSource=fdtxdb';
 mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(()=> console.log('✅ MongoDB connected'))
-  .catch(err => console.error('MongoDB connection error', err));
+  .then(() => console.log('✅ MongoDB connected'))
+  .catch(err => console.error('❌ MongoDB connection error:', err));
 
 const Absensi = mongoose.model('Absensi', new mongoose.Schema({
   nama: String,
@@ -17,13 +20,17 @@ const Absensi = mongoose.model('Absensi', new mongoose.Schema({
   status: String
 }));
 
-// GET /absensi -> return array dokumen
+// GET /absensi -> tampilkan semua data absensi
 app.get('/absensi', async (req, res) => {
-  const docs = await Absensi.find().sort({ tanggal: -1 }).limit(500);
-  res.json(docs);
+  try {
+    const docs = await Absensi.find().sort({ tanggal: -1 }).limit(100);
+    res.json(docs);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
-// POST /absensi -> terima { nama, status } dan simpan
+// POST /absensi -> simpan data absensi baru
 app.post('/absensi', async (req, res) => {
   try {
     const { nama, status } = req.body;
@@ -37,4 +44,4 @@ app.post('/absensi', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, ()=> console.log('Server up on', PORT));
+app.listen(PORT, () => console.log(`🚀 Server up on port ${PORT}`));
