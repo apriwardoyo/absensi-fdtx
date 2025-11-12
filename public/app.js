@@ -1,67 +1,77 @@
-const listEl = document.getElementById('list');
+const apiBase = '/api/attendance';
+
+// ambil referensi elemen
 const form = document.getElementById('form');
 const nameInput = document.getElementById('name');
-const submitBtn = document.getElementById('submit-btn');
+const list = document.getElementById('list');
 const dateInput = document.getElementById('date');
 const searchBtn = document.getElementById('search');
 const clearBtn = document.getElementById('clear');
+const submitBtn = document.getElementById('submit-btn');
 
-// Render attendance list
-async function loadList(filterDate) {
-  listEl.innerHTML = '<li class="empty">Memuat...</li>';
-  let url = '/api/attendance';
-  if (filterDate) url += '?date=' + filterDate;
-
-  const res = await fetch(url);
-  const data = await res.json();
-
-  if (data.length === 0) {
-    listEl.innerHTML = '<li class="empty">Belum ada data</li>';
-    return;
+// fungsi untuk menampilkan daftar absensi
+async function loadData(query = '') {
+  list.innerHTML = '<li class="empty">Memuat...</li>';
+  try {
+    const res = await fetch(apiBase + query);
+    const data = await res.json();
+    if (!data.length) {
+      list.innerHTML = '<li class="empty">Belum ada data absensi</li>';
+      return;
+    }
+    list.innerHTML = data.map(item => `
+      <li>
+        <strong>${item.name}</strong>
+        <span class="time">${new Date(item.date).toLocaleString('id-ID')}</span>
+      </li>
+    `).join('');
+  } catch (err) {
+    console.error(err);
+    list.innerHTML = '<li class="empty">Gagal memuat data</li>';
   }
-
-  listEl.innerHTML = '';
-  data.forEach(item => {
-    const li = document.createElement('li');
-    li.textContent = item.name;
-    const span = document.createElement('span');
-    span.className = 'time';
-    span.textContent = new Date(item.date).toLocaleString();
-    li.appendChild(span);
-    listEl.appendChild(li);
-  });
 }
 
-// Submit new attendance
-submitBtn.addEventListener('click', async () => {
+// fungsi kirim data absensi
+async function submitAbsensi() {
   const name = nameInput.value.trim();
-  if (!name) return alert('Isi nama!');
+  if (!name) return alert('Nama wajib diisi!');
 
-  const res = await fetch('/api/attendance', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name })
-  });
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Mengirim...';
 
-  if (res.ok) {
+  try {
+    const res = await fetch(apiBase, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name })
+    });
+    const result = await res.json();
+    alert(result.message || 'Sukses');
     nameInput.value = '';
-    loadList();
-  } else {
-    alert('Gagal input data');
+    await loadData();
+  } catch (err) {
+    console.error(err);
+    alert('Gagal mengirim absensi');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Absen';
   }
-});
+}
 
-// Search by date
+// pencarian berdasarkan tanggal
 searchBtn.addEventListener('click', () => {
   const date = dateInput.value;
-  loadList(date);
+  if (date) loadData(`?date=${date}`);
 });
 
-// Clear filter
+// tampilkan semua
 clearBtn.addEventListener('click', () => {
   dateInput.value = '';
-  loadList();
+  loadData();
 });
 
-// Initial load
-loadList();
+// tombol submit
+submitBtn.addEventListener('click', submitAbsensi);
+
+// load data saat pertama kali
+loadData();
