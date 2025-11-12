@@ -45,3 +45,12 @@ app.get('/absensi', async (req, res) => {
 });
 
 app.listen(8080, () => console.log('🚀 Server running on port 8080'));
+
+"dependencies": {
+  "express": "^4.18.2",
+  "mongoose": "^7.6.0",
+  "body-parser": "^1.20.2"
+}
+
+
+
