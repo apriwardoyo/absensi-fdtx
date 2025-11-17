@@ -1,8 +1,12 @@
-const mongoose = require('mongoose');
+const Absensi = mongoose.model(
+  'Absensi',
+  new mongoose.Schema({
+    nama: String,
+    tanggal: { type: Date, default: Date.now },
+    status: String
+  }),
+  'absensi'
+);
 
-const AttendanceSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  time: { type: Date, default: Date.now }
-}, { timestamps: true });
 
-module.exports = mongoose.model('Attendance', AttendanceSchema);
+
