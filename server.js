@@ -12,11 +12,15 @@ mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('✅ MongoDB connected'))
   .catch(err => console.error('❌ MongoDB connection error:', err));
 
-const Absensi = mongoose.model('Absensi', new mongoose.Schema({
-  nama: String,
-  tanggal: { type: Date, default: Date.now },
-  status: String
-}));
+const Absensi = mongoose.model(
+  'Absensi',
+  new mongoose.Schema({
+    nama: String,
+    tanggal: { type: Date, default: Date.now },
+    status: String
+  }),
+  'absensi' // <--- wajib: nama collection yang diinginkan
+);
 
 // GET semua data
 app.get('/absensi', async (req, res) => {
@@ -51,3 +55,4 @@ app.delete('/absensi/:id', async (req, res) => {
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+
